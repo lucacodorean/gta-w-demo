@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace app\Exceptions\Auth;
+
+use http\Exception\InvalidArgumentException;
+
+class IncorrectCredentialsException extends InvalidArgumentException
+{
+    private const MESSAGE = "Invalid credentials";
+
+    public function __construct() {
+        parent::__construct(self::MESSAGE);
+    }
+}
