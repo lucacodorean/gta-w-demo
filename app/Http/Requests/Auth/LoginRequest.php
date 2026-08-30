@@ -9,7 +9,7 @@ class LoginRequest extends FormRequest
 {
     public function rules(): array {
         return [
-            'email' => ['required', 'email', 'exists:users,email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ];
     }
@@ -17,7 +17,6 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.exists' => 'There is no account associated to this e-mail address.',
             'email.required' => 'Email is required.',
             'email.email' => 'Email is invalid.',
             'password.required' => 'Password is required.',

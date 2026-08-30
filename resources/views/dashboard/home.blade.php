@@ -114,7 +114,6 @@
                     </form>
                 @else
                     <div class="empty-state">
-                        <div class="empty-glyph" aria-hidden="true">🗒️</div>
                         <h2>No note selected</h2>
                         <p>Create a note to get started.</p>
                     </div>

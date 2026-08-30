@@ -5,14 +5,14 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\HttpCodes;
-use app\Exceptions\Auth\IncorrectCredentialsException;
+use App\Exceptions\Auth\IncorrectCredentialsException;
 use App\Helper\Logger;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
-use App\Models\User;
 use App\Services\AuthValidator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -35,17 +35,15 @@ class AuthController extends Controller
 
     public function login(LoginRequest $request): RedirectResponse
     {
-        if (!$request->validated()) {
-            $this->log('Invalid request.', $request, HttpCodes::HTTP_UNPROCESSABLE_ENTITY->value);
-        }
-
         try {
-            /**@var User $user **/
-            $user = $this->authValidator->validateLogin($request['email'], $request['password']);
+            $this->authValidator->validateLogin(
+                $request->validated('email'),
+                $request->validated('password'),
+            );
 
-            return $this->executeLogin($user, $request);
+            return $this->executeLogin($request);
         } catch (IncorrectCredentialsException $exception) {
-            $this->log($exception->getMessage(), $request, $exception->getCode());
+            $this->log($exception->getMessage(), $request, $exception->getCode(), level: 'warning');
 
             return back()->withErrors([
                 'general' => 'The provided credentials do not match our records.',
@@ -54,14 +52,13 @@ class AuthController extends Controller
     }
 
     public function register(RegisterRequest $request): RedirectResponse {
-        if (!$request->validated()) {
-            $this->log('Invalid request.', $request, HttpCodes::HTTP_UNPROCESSABLE_ENTITY->value);
-        }
+        $this->authValidator->createNewUser(
+            $request->validated('name'),
+            $request->validated('email'),
+            $request->validated('password'),
+        );
 
-        /**@var User $user **/
-        $user = $this->authValidator->createNewUser($request['name'], $request['email'], $request['password']);
-
-        return $this->executeLogin($user, $request);
+        return $this->executeLogin($request);
     }
 
     public function logout(Request $request): RedirectResponse {
@@ -70,15 +67,16 @@ class AuthController extends Controller
             $request,
             HttpCodes::HTTP_OK->value,
         );
-        $this->authValidator->logout();
+
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }
 
-    private function executeLogin(User $user, Request $request): RedirectResponse
+    private function executeLogin(Request $request): RedirectResponse
     {
-        $this->authValidator->login($user);
-
         $this->log(
             'Login successfully made.',
             $request,
@@ -88,9 +86,6 @@ class AuthController extends Controller
             ]
         );
 
-        return redirect()->route('home', [
-            'user' => $user,
-            'notes' => $user->notes()->orderBy('created_at', 'desc')->get()
-        ]);
+        return redirect()->route('home');
     }
 }

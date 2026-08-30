@@ -44,8 +44,10 @@ trait Logger
         Request $request,
         int $code = HttpCodes::HTTP_INTERNAL_SERVER_ERROR->value,
         array $context = [],
+        string $level = 'info',
     ): void {
-        Log::alert(
+        Log::log(
+            $level,
             $message,
             $this->buildContext(
                 $request,
