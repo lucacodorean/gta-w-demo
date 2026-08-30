@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Middlewares;
 
 use App\Helper\Logger;
-use App\Helper\NotificationSender;
 use Illuminate\Routing\Controllers\Middleware;
 
 class EnsureNotSessionActiveMiddleware extends Middleware
 {
-    use NotificationSender, Logger;
+    use Logger;
 
     public function __invoke()
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace app\Exceptions\Auth;
 
-use http\Exception\InvalidArgumentException;
+use InvalidArgumentException;
 
 class IncorrectCredentialsException extends InvalidArgumentException
 {

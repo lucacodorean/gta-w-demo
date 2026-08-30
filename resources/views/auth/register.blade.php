@@ -20,20 +20,22 @@
                     <div class="alert">{{ session('status') }}</div>
                 @endif
 
-                @if ($errors->any())
-                    <div class="alert">
-                        We couldn't create your account:
-                        <ul>
-                            @foreach ($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                    </div>
-                @endif
-
                 <form method="POST" action="{{ route('register') }}" novalidate>
                     {{-- CSRF protection: expands to a hidden _token field holding csrf_token(). --}}
                     @csrf
+
+                    <div class="field">
+                        <label for="name">Name</label>
+                        <input id="name"
+                               name="name"
+                               value="{{ old('name') }}"
+                               autocomplete="name"
+                               autofocus
+                               required>
+                        @error('name')
+                        <p class="field-error">{{ $message }}</p>
+                        @enderror
+                    </div>
 
                     <div class="field">
                         <label for="email">Email</label>
@@ -62,7 +64,6 @@
                         @enderror
                     </div>
 
-                    {{-- RegisterRequest uses the `confirmed` rule, so this field must be named password_confirmation. --}}
                     <div class="field">
                         <label for="password_confirmation">Confirm password</label>
                         <input id="password_confirmation"

@@ -44,9 +44,6 @@
                                autocomplete="email"
                                autofocus
                                required>
-                        @error('email')
-                            <p class="field-error">{{ $message }}</p>
-                        @enderror
                     </div>
 
                     <div class="field">
@@ -56,9 +53,6 @@
                                name="password"
                                autocomplete="current-password"
                                required>
-                        @error('password')
-                            <p class="field-error">{{ $message }}</p>
-                        @enderror
                     </div>
 
                     <button type="submit" class="btn btn-primary btn-block">Sign in</button>

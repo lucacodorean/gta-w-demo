@@ -11,7 +11,7 @@ use Illuminate\Container\Attributes\Singleton;
 final readonly class NoteManager
 {
     public function createNote(Note $note) {
-
+        // TODO: Create a Note. Ensure that it is stored properly.
     }
 
     public function updateNote(Note $note) {

@@ -10,8 +10,11 @@ class DashboardController extends Controller
 
         // TODO: This should be CSRF protected.
 
+        $user = auth()->user();
+
         return view('dashboard.home', [
-            'user' => auth()->user(),
+            'user' => $user,
+            'notes' => $user->notes()->orderBy('created_at', 'desc')->get()
         ]);
     }
 }

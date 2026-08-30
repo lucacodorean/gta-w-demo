@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\HttpCodes;
 use app\Exceptions\Auth\IncorrectCredentialsException;
-use App\Exceptions\InvalidRequestException;
 use App\Helper\Logger;
-use App\Helper\NotificationSender;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Models\User;
 use App\Services\AuthValidator;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
-    use NotificationSender, Logger;
+    use Logger;
 
     public function __construct(
         private readonly AuthValidator $authValidator
@@ -24,67 +25,72 @@ class AuthController extends Controller
     }
 
     public function showLogin() {
-
-        //TODO: This needs to be CSRF protected.
-        return view('auth.login', []);
+        return view('auth.login');
     }
 
     public function showRegister() {
-        //TODO: This needs to be CSRF protected.
-        return view('auth.register', []);
+        return view('auth.register');
     }
 
 
     public function login(LoginRequest $request): RedirectResponse
     {
         if (!$request->validated()) {
-            // TODO: Send notification in notification bag regarding invalid request.
+            $this->log('Invalid request.', $request, HttpCodes::HTTP_UNPROCESSABLE_ENTITY->value);
         }
 
         try {
-            $user = $this->authValidator->validateLogin(
-                email: $request['email'],
-                password: $request['password']
-            );
+            /**@var User $user **/
+            $user = $this->authValidator->validateLogin($request['email'], $request['password']);
 
-            auth()->login($user);
-
-            return redirect()->route('home', [
-                'user' => $user
-            ]);
+            return $this->executeLogin($user, $request);
         } catch (IncorrectCredentialsException $exception) {
-            // TODO Send notification in notification bag regarding incorrect credentials.
-            // TODO Log the exception.
-        }
+            $this->log($exception->getMessage(), $request, $exception->getCode());
 
-        return redirect()->route('login');
+            return back()->withErrors([
+                'general' => 'The provided credentials do not match our records.',
+            ])->onlyInput('email');
+        }
     }
 
     public function register(RegisterRequest $request): RedirectResponse {
         if (!$request->validated()) {
-            // TODO: Send notification in notification bag regarding invalid request.
+            $this->log('Invalid request.', $request, HttpCodes::HTTP_UNPROCESSABLE_ENTITY->value);
         }
 
-        try{
-            $user = $this->authValidator->createNewUser(
-                email: $request['email'],
-                password: $request['password']
-            );
+        /**@var User $user **/
+        $user = $this->authValidator->createNewUser($request['name'], $request['email'], $request['password']);
 
-            auth()->login($user);
-
-            return redirect()->route('home', [
-                'user' => $user
-            ]);
-        } catch (InvalidRequestException $exception) {
-            //TODO: Log the exception.
-        }
-
-        return redirect()->route('register');
+        return $this->executeLogin($user, $request);
     }
 
-    public function logout(): RedirectResponse {
-        auth()->logout();
+    public function logout(Request $request): RedirectResponse {
+        $this->log(
+            'Session ended by the user.',
+            $request,
+            HttpCodes::HTTP_OK->value,
+        );
+        $this->authValidator->logout();
+
         return redirect()->route('login');
+    }
+
+    private function executeLogin(User $user, Request $request): RedirectResponse
+    {
+        $this->authValidator->login($user);
+
+        $this->log(
+            'Login successfully made.',
+            $request,
+            HttpCodes::HTTP_REDIRECTED->value,
+            [
+                'redirect-url' => route('home')
+            ]
+        );
+
+        return redirect()->route('home', [
+            'user' => $user,
+            'notes' => $user->notes()->orderBy('created_at', 'desc')->get()
+        ]);
     }
 }

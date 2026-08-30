@@ -25,7 +25,7 @@
         <header class="topbar">
             <span class="topbar-brand">Notes</span>
             <div class="topbar-spacer"></div>
-            <span class="topbar-meta">{{ $user?->email }}</span>
+            <span class="topbar-meta">{{ $user?->name }}</span>
 
             <form method="POST" action="{{ route('logout') }}">
                 {{-- CSRF protection: expands to a hidden _token field holding csrf_token(). --}}
