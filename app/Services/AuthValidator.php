@@ -9,7 +9,7 @@ use Illuminate\Container\Attributes\Singleton;
 use Illuminate\Contracts\Auth\Authenticatable;
 
 #[Singleton]
-class AuthValidator
+final readonly class AuthValidator
 {
     public function validateLogin(
         string $email,
