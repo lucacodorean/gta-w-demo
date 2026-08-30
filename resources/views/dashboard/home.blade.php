@@ -15,7 +15,6 @@
 @section('body-class', 'app')
 
 @php
-    // TODO: DashboardController should pass the user's notes once NoteManager is implemented.
     $notes = collect($notes ?? []);
     $selectedNote = $selectedNote ?? $notes->first();
 @endphp
@@ -54,8 +53,8 @@
                     @forelse ($notes as $note)
                         <li>
                             <button type="button"
-                                    class="note-row {{ $selectedNote && $selectedNote->id === $note->id ? 'is-active' : '' }}"
-                                    data-note-id="{{ $note->id }}"
+                                    class="note-row {{ $selectedNote && $selectedNote->slug === $note->slug ? 'is-active' : '' }}"
+                                    data-note-id="{{ $note->slug }}"
                                     data-note-title="{{ $note->title }}"
                                     data-note-content="{{ $note->content ?? '' }}">
                                 <span class="note-row-title">{{ $note->title ?: 'New Note' }}</span>
@@ -75,7 +74,7 @@
             <main class="editor">
                 @if ($selectedNote)
                     <form method="POST"
-                          action="{{ url('/notes/' . $selectedNote->id) }}"
+                          action="{{ url('/notes/' . $selectedNote->slug) }}"
                           class="editor-form"
                           id="note-form">
                         {{-- CSRF protection: expands to a hidden _token field holding csrf_token(). --}}
@@ -104,7 +103,7 @@
                     </form>
 
                     <form method="POST"
-                          action="{{ url('/notes/' . $selectedNote->id) }}"
+                          action="{{ url('/notes/' . $selectedNote->slug) }}"
                           class="editor-danger"
                           id="note-delete-form"
                           onsubmit="return confirm('Delete this note?');">

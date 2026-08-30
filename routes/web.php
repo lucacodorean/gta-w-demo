@@ -17,4 +17,7 @@ Route::prefix('auth')->middleware('auth')->group(function () {
 
 Route::prefix('notes')->middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'showHome'])->name('home');
+    Route::post('/', [DashboardController::class, 'createNote'])->name('create-note');
+    Route::delete('/{note}', [DashboardController::class, 'deleteNote'])->name('delete-note');
+    Route::put('/{note}', [DashboardController::class, 'updateNote'])->name('update-note');
 });

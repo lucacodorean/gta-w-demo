@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 trait Logger
 {
     /**
-     * This method is created in order to facilitate an option to provide more context to a log.
+     * This method is created to facilitate an option to provide more context to a log.
      * For current usages, only the IP is fetched from the request.
      */
     public function buildContext(
@@ -24,6 +24,7 @@ trait Logger
                 'client_ip'  => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'user_id'    => $request->user()?->id ?? "N/A",
+                'timestamp'  => $request->timestamp,
             ]
         ];
     }
@@ -54,5 +55,9 @@ trait Logger
                 $this->prepareContext($code, $context)
             )
         );
+    }
+
+    public static function getEmptyContext(): array {
+        return [];
     }
 }

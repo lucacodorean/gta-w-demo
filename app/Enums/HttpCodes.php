@@ -9,6 +9,8 @@ enum HttpCodes: int
 
     case HTTP_OK = 200;
     case HTTP_CREATED = 201;
+
+    case HTTP_DELETED = 204;
     case HTTP_REDIRECTED = 302;
     case HTTP_UNAUTHORIZED = 401;
     case HTTP_INTERNAL_SERVER_ERROR = 500;
