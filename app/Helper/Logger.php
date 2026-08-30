@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Helper;
 
 use App\Enums\HttpCodes;
+use App\Enums\LogEvents;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -30,18 +31,24 @@ trait Logger
     }
 
     private function prepareContext(
+        LogEvents $event,
         int $code,
         array $context = [],
     ): array
     {
         return [
+            'event' => $event->value,
             'code' => $code,
             'specific-information' => $context,
         ];
     }
 
+    /**
+     * The event carries its own wording (LogEvents::message()); its key travels
+     * with the entry so logs can be filtered on the event rather than on text.
+     */
     public function log(
-        string $message,
+        LogEvents $event,
         Request $request,
         int $code = HttpCodes::HTTP_INTERNAL_SERVER_ERROR->value,
         array $context = [],
@@ -49,10 +56,10 @@ trait Logger
     ): void {
         Log::log(
             $level,
-            $message,
+            $event->message(),
             $this->buildContext(
                 $request,
-                $this->prepareContext($code, $context)
+                $this->prepareContext($event, $code, $context)
             )
         );
     }

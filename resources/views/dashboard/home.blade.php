@@ -6,10 +6,16 @@
       - a sidebar with search + the note list
       - a main pane with the note editor / empty state
 
+    Notes are stored as markdown files, so the editor pane has two modes:
+      - Edit: the raw .md source in a textarea
+      - Preview: that source rendered to HTML (server side, see MarkdownRenderer)
+
     The controller currently only passes `user`, so every note related variable is
     resolved defensively below and the view degrades to an empty state.
 --}}
 @extends('layouts.app')
+
+@use('App\Helper\MarkdownRenderer')
 
 @section('title', 'Notes')
 @section('body-class', 'app')
@@ -86,6 +92,19 @@
                                 {{ optional($selectedNote->updated_at)->format('F j, Y \a\t g:i A') }}
                             </span>
                             <div class="topbar-spacer"></div>
+
+                            {{-- Switches the pane between the markdown source and its rendering. --}}
+                            <div class="mode-switch" role="group" aria-label="Editor mode">
+                                <button type="button"
+                                        class="mode-btn is-active"
+                                        data-mode="edit"
+                                        aria-pressed="true">Edit</button>
+                                <button type="button"
+                                        class="mode-btn"
+                                        data-mode="preview"
+                                        aria-pressed="false">Preview</button>
+                            </div>
+
                             <button type="submit" class="btn">Save</button>
                         </div>
 
@@ -100,6 +119,19 @@
                                   id="note-content"
                                   class="editor-content"
                                   placeholder="Start writing…">{{ old('content', $selectedNote->content ?? '') }}</textarea>
+
+                        {{--
+                            Rendered markdown. Built server side for the note that is open on
+                            page load, so the very first preview needs no round trip; while
+                            typing it is refreshed from /notes/preview with the same renderer.
+
+                            The renderer escapes any raw HTML in a note and drops unsafe links,
+                            so this output is safe to print unescaped.
+                        --}}
+                        <div class="editor-preview markdown-body"
+                             id="note-preview"
+                             data-preview-url="{{ url('/notes/preview') }}"
+                             hidden>{!! MarkdownRenderer::toHtml(old('content', $selectedNote->content ?? '')) !!}</div>
                     </form>
 
                     <form method="POST"
@@ -279,6 +311,135 @@
         .editor-title:focus,
         .editor-content:focus { outline: none; }
 
+        /* ---------- edit / preview switch ---------- */
+
+        .mode-switch {
+            display: inline-flex;
+            padding: 2px;
+            background: var(--sidebar);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .mode-btn {
+            padding: 4px 10px;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: transparent;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .mode-btn:hover { color: var(--text); }
+
+        .mode-btn.is-active {
+            color: #1d1d1f;
+            background: var(--accent);
+        }
+
+        /* ---------- rendered markdown ---------- */
+
+        .editor-preview {
+            flex: 1 1 auto;
+            min-height: 0;
+            padding: 12px 20px 20px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .markdown-body:empty::before {
+            content: 'Nothing to preview yet.';
+            color: var(--text-muted);
+        }
+
+        .markdown-body > :first-child { margin-top: 0; }
+
+        .markdown-body h1,
+        .markdown-body h2,
+        .markdown-body h3,
+        .markdown-body h4 {
+            margin: 1.4em 0 .5em;
+            line-height: 1.3;
+            letter-spacing: -.01em;
+        }
+
+        .markdown-body h1 { font-size: 22px; }
+        .markdown-body h2 { font-size: 18px; }
+        .markdown-body h3 { font-size: 16px; }
+        .markdown-body h4 { font-size: 14px; }
+
+        .markdown-body p,
+        .markdown-body ul,
+        .markdown-body ol,
+        .markdown-body blockquote,
+        .markdown-body pre,
+        .markdown-body table { margin: 0 0 1em; }
+
+        .markdown-body ul,
+        .markdown-body ol { padding-left: 22px; }
+
+        .markdown-body li { margin: .25em 0; }
+
+        .markdown-body a { color: var(--text); text-underline-offset: 2px; }
+
+        .markdown-body blockquote {
+            padding: 2px 14px;
+            color: var(--text-muted);
+            border-left: 3px solid var(--border);
+        }
+
+        .markdown-body code {
+            padding: 1px 5px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: .9em;
+            background: var(--sidebar);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+        }
+
+        .markdown-body pre {
+            padding: 12px 14px;
+            overflow-x: auto;
+            background: var(--sidebar);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .markdown-body pre code {
+            padding: 0;
+            background: transparent;
+            border: 0;
+        }
+
+        .markdown-body table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .markdown-body th,
+        .markdown-body td {
+            padding: 6px 10px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .markdown-body th { background: var(--sidebar); }
+
+        .markdown-body hr {
+            margin: 1.5em 0;
+            border: 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .markdown-body img { max-width: 100%; }
+
+        .markdown-body input[type="checkbox"] { margin-right: 6px; }
+
+        .preview-error { color: var(--danger); }
+
         .editor-danger {
             padding: 8px 14px;
             border-top: 1px solid var(--border);
@@ -362,6 +523,83 @@
 
                     title.value = row.dataset.noteTitle || '';
                     content.value = row.dataset.noteContent || '';
+
+                    // The pane now holds a different note: drop the rendered
+                    // markdown of the previous one and go back to editing.
+                    previewSource = null;
+                    setMode('edit');
+                });
+            });
+
+            // ---------- markdown preview ----------
+
+            const preview = document.getElementById('note-preview');
+            const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
+
+            // Markdown the HTML currently in the preview pane was rendered from.
+            // The pane starts server rendered from what the textarea holds, and
+            // `null` means "whatever is in there is stale".
+            let previewSource = content ? content.value : null;
+
+            function setMode(mode) {
+                const isPreview = mode === 'preview';
+
+                if (content) {
+                    content.hidden = isPreview;
+                }
+
+                if (preview) {
+                    preview.hidden = !isPreview;
+                }
+
+                modeButtons.forEach(function (button) {
+                    const active = button.dataset.mode === mode;
+                    button.classList.toggle('is-active', active);
+                    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+
+                if (isPreview) {
+                    renderPreview();
+                }
+            }
+
+            function renderPreview() {
+                if (!preview || !content || previewSource === content.value) {
+                    return;
+                }
+
+                const source = content.value;
+                const token = document.querySelector('meta[name="csrf-token"]');
+
+                fetch(preview.dataset.previewUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': token ? token.content : '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ content: source }),
+                }).then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Preview request failed: ' + response.status);
+                    }
+
+                    return response.json();
+                }).then(function (data) {
+                    // Safe as HTML: the server escapes raw HTML found in a note
+                    // and strips unsafe links before sending it back.
+                    preview.innerHTML = data.html || '';
+                    previewSource = source;
+                }).catch(function () {
+                    preview.innerHTML = '<p class="preview-error">Preview is unavailable right now.</p>';
+                    previewSource = null;
+                });
+            }
+
+            modeButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    setMode(button.dataset.mode);
                 });
             });
         })();

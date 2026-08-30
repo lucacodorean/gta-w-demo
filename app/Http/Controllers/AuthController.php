@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\HttpCodes;
+use App\Enums\LogEvents;
 use App\Exceptions\Auth\IncorrectCredentialsException;
 use App\Helper\Logger;
 use App\Http\Requests\Auth\LoginRequest;
@@ -43,7 +44,14 @@ class AuthController extends Controller
 
             return $this->executeLogin($request);
         } catch (IncorrectCredentialsException $exception) {
-            $this->log($exception->getMessage(), $request, $exception->getCode(), level: 'warning');
+            // The event carries the wording; the exception message stays as context.
+            $this->log(
+                LogEvents::LOGIN_FAILED,
+                $request,
+                $exception->getCode(),
+                ['reason' => $exception->getMessage()],
+                'warning',
+            );
 
             return back()->withErrors([
                 'general' => 'The provided credentials do not match our records.',
@@ -63,7 +71,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): RedirectResponse {
         $this->log(
-            'Session ended by the user.',
+            LogEvents::LOGOUT,
             $request,
             HttpCodes::HTTP_OK->value,
         );
@@ -78,7 +86,7 @@ class AuthController extends Controller
     private function executeLogin(Request $request): RedirectResponse
     {
         $this->log(
-            'Login successfully made.',
+            LogEvents::LOGIN_SUCCEEDED,
             $request,
             HttpCodes::HTTP_REDIRECTED->value,
             [
